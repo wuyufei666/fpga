@@ -1,0 +1,51 @@
+module SoC(
+    input wire clk0,  
+    input wire rst,
+    /*IO interface*/
+    input wire [1:0] sel,
+    output reg [10:0] displayout, // 前4位控制AN，后7位控制段码
+    output wire [15:0] led
+);
+    wire [6:0] out1, out2, out3, out4;
+    reg [19:0] cnt_refresh = 0;    // 刷新计数器（假设50MHz时钟）
+    reg [1:0] sel_scan = 0;        // 数码管动态扫描选择信号
+ 
+    // 七段译码模块实例化
+    shumaguan U1(out1, led[3:0]);
+    shumaguan U2(out2, led[7:4]);
+    shumaguan U3(out3, led[11:8]);
+    shumaguan U4(out4, led[15:12]);
+ 
+    // 分时复用控制逻辑
+    always @(posedge clk0) begin
+        if (rst) begin
+            cnt_refresh <= 0;
+            sel_scan <= 0;
+        end else begin
+            cnt_refresh <= cnt_refresh + 1;
+            if (cnt_refresh == 50_000) begin // 1ms刷新周期（50MHz时钟）
+                cnt_refresh <= 0;
+                sel_scan <= sel_scan + 1;
+            end
+        end
+    end
+ 
+    // 数码管动态扫描输出
+    always @(*) begin
+        case (sel_scan)
+            2'b00: displayout = {4'b1110, out1}; // 选中第1位数码管（AN0低电平）
+            2'b01: displayout = {4'b1101, out2}; // 选中第2位数码管（AN1低电平）
+            2'b10: displayout = {4'b1011, out3}; // 选中第3位数码管（AN2低电平）
+            2'b11: displayout = {4'b0111, out4}; // 选中第4位数码管（AN3低电平）
+            default: displayout = 11'b1111_1111111; // 默认关闭
+        endcase
+    end
+    // 其余原有代码保持不变（时钟分频、MIPS、内存等）
+    wire clk;
+    clk_div clk_div0(
+        .clk(clk0),
+        .rst(rst),
+        .Clk_CPU(clk)
+    );
+    // ...（其他模块实例化代码）
+endmodule
