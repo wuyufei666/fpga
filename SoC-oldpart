@@ -1,0 +1,33 @@
+module SoC(
+    input wire clk0,  
+    input wire rst,
+	/*IO interface*/
+	input wire [1:0] sel,
+	output reg[10:0] displayout,//
+	output wire[15:0] led
+);
+wire[6:0] out1;
+wire[6:0] out2;
+wire[6:0] out3;
+wire[6:0] out4;
+shumaguan U1(out1,led[3:0]);
+shumaguan U2(out2,led[7:4]);
+shumaguan U3(out3,led[11:8]);
+shumaguan U4(out4,led[15:12]);
+always@(*)
+	begin
+	if(led[3:0]>0) displayout={4'b1110,out1};
+	else if(led[7:4]>0) displayout={4'b1101,out2};
+	else if(led[11:8]>0) displayout={4'b1011,out3};
+	else if(led[15:12]>0) displayout={4'b0111,out4};
+	end
+ 
+ 
+   wire clk;
+ clk_div clk_div0(
+        .clk(clk0),
+        .rst(rst),
+        .Clk_CPU(clk)
+    );
+    
+//.......
