@@ -1,0 +1,12 @@
+		//exp3
+		instmem[4] =32'h34040001;	//ori r4,r0,0x0001
+		instmem[5] =32'h34058000;	//ori r5,r0,0x8000
+		//exp1
+		instmem[6] =32'h8c230000;	//lw r3,0x0(r1)
+		instmem[7] =32'h10640001;	//beq r3,r4,exp2
+		instmem[8] =32'h80000006;	//j exp1
+		//exp2
+		instmem[9] =32'hac440000;	//sw r4,0x0(r2)
+		instmem[10] =32'h00042040;	//sll r4,r4,1
+		instmem[11] =32'h1485fffd;	//bne r4,r5,exp2
+		instmem[12] =32'h08000004;	//j exp3

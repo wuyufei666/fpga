@@ -1,0 +1,88 @@
+遇到的问题及解决：
+（1）在设计sc指令过程中，看似sc和sw指令格式是一样的，但是sc要给rt赋1，这个在当时设计过程中在ID模块忽略了这个问题，并没有提供正确的regcWrite和regcAddr，导致仿真datamem[addr]<--rt和LLbit<--0没有问题，并没有给rt赋1，通过分析仿真结果，观察到ID传出来的结果并不是预期的，找到问题所在并修改。
+（2）在实现mtlo和mthi的过程中忘记把whi和wlo这两个写信号在EX中设置为有效，导致结果没有写入LLbit。还有就是中断的优先级要比J型指令高，在IF模块就要放到J型之前判断，在设计的时候忽略了这个问题，导致仿真结果出现错误。
+（3）下板的代码在Modelsim上仿真没有问题，在实验室Vivado 18.3下板的过程出现了报错，但是看不懂。下午想着在宿舍试试，最后是在自己电脑上安装了Vivado 19.1，就不出现报错了。流水灯一开始的下板结果并不是我预期的，检查发现代码的逻辑有问题。
+（4）规定了相应的模块端口的命名，特别是在设计流水线的过程中，否则代码的整合会非常麻烦。
+
+下板
+Vivado2019.1/basys3
+流水灯（16个灯）
+
+流水灯添加数码管
+basys3-----用程序控制
+示例：开关1---4个数码管显示1234
+	开关2----4个数码管显示4321
+
+上面的示例是一个静态的？
+那流水灯---动态？怎么实现
+（也就是数码管同时显示的问题）
+
+解决方法：
+老师说也可以用sword开发板（这个之前用过，比较熟悉）
+sword开发板，有相应的并串转换模块，可以实现同时显示
+
+basys3要是有就好了，害！
+
+想到的两个解决方法：
+1.用sword开发板
+2.如果不用数码管同时显示的话，是不是也可以呢？
+流水灯我用的是初值是1，然后左移，那么每次只有一个灯亮（4个灯对应一个数码管），那么也就是一个数码管亮（选通）
+
+用一个always块来实现该功能（选通数码管），如下，低四个灯有灯亮（也就是代码中的led[3:0]>0）选通第一个数码管，其余都类似。
+（这里就是有灯亮的时候数码管才亮，舍弃了0，如果led[3:0]>=0，当灯左移4位后，那就在这一个if语句里（大概就是这个意思），那就一直选通的这个数码管，显示0）
+
+
+SoC部分代码
+module SoC(
+    input wire clk0,  
+    input wire rst,
+	/*IO interface*/
+	input wire [1:0] sel,
+	output reg[10:0] displayout,//
+	output wire[15:0] led
+);
+wire[6:0] out1;
+wire[6:0] out2;
+wire[6:0] out3;
+wire[6:0] out4;
+shumaguan U1(out1,led[3:0]);         //7段译码
+shumaguan U2(out2,led[7:4]);
+shumaguan U3(out3,led[11:8]);
+shumaguan U4(out4,led[15:12]);
+always@(*)
+	begin
+	if(led[3:0]>0) displayout={4'b1110,out1};
+	else if(led[7:4]>0) displayout={4'b1101,out2};
+	else if(led[11:8]>0) displayout={4'b1011,out3};
+	else if(led[15:12]>0) displayout={4'b0111,out4};
+	end
+
+
+有关数码管的约束文件
+（这里的高4位对应的管脚，就是用来选通哪一个数码管）
+set_property PACKAGE_PIN W4 [get_ports {displayout[10]}]
+set_property PACKAGE_PIN V4 [get_ports {displayout[9]}]
+set_property PACKAGE_PIN U4 [get_ports {displayout[8]}]
+set_property PACKAGE_PIN U2 [get_ports {displayout[7]}]
+set_property PACKAGE_PIN W7 [get_ports {displayout[6]}]
+set_property PACKAGE_PIN W6 [get_ports {displayout[5]}]
+set_property PACKAGE_PIN U8 [get_ports {displayout[4]}]
+set_property PACKAGE_PIN V8 [get_ports {displayout[3]}]
+set_property PACKAGE_PIN U5 [get_ports {displayout[2]}]
+set_property PACKAGE_PIN V5 [get_ports {displayout[1]}]
+set_property PACKAGE_PIN U7 [get_ports {displayout[0]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {displayout[9]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {displayout[8]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {displayout[7]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {displayout[6]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {displayout[5]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {displayout[4]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {displayout[3]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {displayout[1]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {displayout[2]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {displayout[0]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {displayout[10]}]
+
+
+
+
